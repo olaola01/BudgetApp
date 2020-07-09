@@ -54,6 +54,20 @@ const budgetController = (function () {
             return newItem
         },
 
+        deleteItem: function(type, id){
+            let ids, index
+
+            ids = data.allItems[type].map(function (current) {
+                    return current.id
+            })
+
+            index = ids.indexOf(id)
+
+            if (index !== -1){
+                data.allItems[type].splice(index, 1)
+            }
+        },
+
         calculateBudget : function () {
             calculateTotal('exp')
             calculateTotal('inc')
@@ -90,7 +104,12 @@ const UIController = (function () {
         inputValue: '.add__value',
         inputBtn: '.add__btn',
         incomeContainer: '.income__list',
-        expensesContainer: '.expenses__list'
+        expensesContainer: '.expenses__list',
+        budgetLabel: '.budget__value',
+        incomeLabel: '.budget__income--value',
+        expenseLabel: '.budget__expenses--value',
+        percentageLabel: '.budget__expenses--percentage',
+        container: '.container'
     }
 
     return {
@@ -106,7 +125,7 @@ const UIController = (function () {
             let html, newHtml, element;
             if (type === 'inc') {
                 element = DOMstrings.incomeContainer
-                html = '<div class="item clearfix" id="income-%id%">\n' +
+                html = '<div class="item clearfix" id="inc-%id%">\n' +
                     '                            <div class="item__description">%description%</div>\n' +
                     '                            <div class="right clearfix">\n' +
                     '                                <div class="item__value">%value%</div>\n' +
@@ -117,7 +136,7 @@ const UIController = (function () {
                     '                        </div>'
             }else if(type === 'exp') {
                 element = DOMstrings.expensesContainer
-                html = ' <div class="item clearfix" id="expense-%id%">\n' +
+                html = ' <div class="item clearfix" id="exp-%id%">\n' +
                     '                            <div class="item__description">%description%</div>\n' +
                     '                            <div class="right clearfix">\n' +
                     '                                <div class="item__value">%value%</div>\n' +
@@ -136,6 +155,11 @@ const UIController = (function () {
 
         },
 
+        deleteListItem : function(selectorID){
+            let el = document.getElementById(selectorID);
+            el.parentNode.removeChild(el)
+        },
+
         clearFields: function(){
             let fields, fieldsArr
 
@@ -148,6 +172,19 @@ const UIController = (function () {
             })
 
             fieldsArr[0].focus();
+        },
+
+        displayBudget: function(obj){
+            document.querySelector(DOMstrings.budgetLabel).innerText = obj.budget
+            document.querySelector(DOMstrings.incomeLabel).innerText = obj.totalInc
+            document.querySelector(DOMstrings.expenseLabel).innerText = obj.totalExp
+
+            if(obj.percentage > 0){
+                document.querySelector(DOMstrings.percentageLabel).innerText = obj.percentage + '%'
+            }else{
+                document.querySelector(DOMstrings.percentageLabel).innerText = '---'
+
+            }
         },
 
         getDOMstrings: function () {
@@ -168,13 +205,14 @@ const controller = (function (budgetCtrl, UICtrl) {
                 ctrlAddItem();
             }
         })
+        document.querySelector(DOM.container).addEventListener('click', ctrlDeleteItem)
     }
 
     let updateBudget = function(){
         budgetCtrl.calculateBudget()
 
         let budget = budgetCtrl.getBudget()
-        console.log(budget)
+        UICtrl.displayBudget(budget)
     }
 
     let ctrlAddItem = function(){
@@ -189,8 +227,29 @@ const controller = (function (budgetCtrl, UICtrl) {
         }
     }
 
+    let ctrlDeleteItem = function (event) {
+        let itemID, splitID, type, ID
+
+        itemID = event.target.parentNode.parentNode.parentNode.parentNode.id
+        if (itemID){
+            splitID = itemID.split('-')
+            type = splitID[0]
+            ID = parseInt(splitID[1])
+
+            budgetCtrl.deleteItem(type,ID)
+            UICtrl.deleteListItem(itemID)
+            updateBudget()
+        }
+    }
+
     return {
         init: function () {
+            UICtrl.displayBudget({
+                budget: 0,
+                totalInc: 0,
+                totalExp: 0,
+                percentage: -1
+            })
             setupEventListeners()
         }
     }
